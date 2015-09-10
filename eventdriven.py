@@ -6,12 +6,12 @@ from threading import Thread
 
 
 EVENT_MD_LOGIN = 'md_login'
-EVENT_MD_LOGOUT = 'md_logout'
 EVNET_MD_RSPERROR = 'md_error'
 EVENT_MD_DATA = 'md_data'
 
 EVENT_TD_LOGIN = 'td_login'
-EVENT_TD_LOGOUT = 'td_logout'
+EVENT_TD_SETTLEINFO = 'td_settleinfo'
+EVENT_TD_SETTLECONFIRM = 'td_settleconfirm'
 
 class Event(object):
     '''definition of a event'''
@@ -32,7 +32,7 @@ class EventDispatcher(object):
     def __run(self):
         while self.isActive():
             try:
-                event = self.__events.get(block=True, timeout=1.0)
+                event = self.__events.get(block=True)
                 self.__process(event)
             except Empty:
                 pass
@@ -44,8 +44,13 @@ class EventDispatcher(object):
 
 
     def  start(self):
-        self.__active = True
-        self.__thread.start()
+        if self.__active == False:
+            self.__active = True
+            self.__thread.start()
+
+    def stop(self):
+        self.__active = False
+        self.__thread.join()
 
     def registerListener(self, event_type, listener):
         self.__listeners[event_type].append(listener)

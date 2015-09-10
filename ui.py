@@ -7,16 +7,16 @@ from PyQt4 import QtGui, QtCore
 
 from listeners import *
 from eventdriven import *
-from mdapi import *
+from ctp import *
 
 
 class LoginDialog(QtGui.QDialog):
     # login dialog
 
-    def __init__(self, mdapi):
+    def __init__(self, ctp):
         super(LoginDialog, self).__init__()
 
-        self.__md = mdapi
+        self.__ctp = ctp
 
         self.setWindowTitle('Login')
 
@@ -24,8 +24,10 @@ class LoginDialog(QtGui.QDialog):
         self.userid.setPlaceholderText('UserID')
         self.passwd = QtGui.QLineEdit(self)
         self.passwd.setPlaceholderText('PassWord')
-        self.address = QtGui.QLineEdit(self)
-        self.address.setPlaceholderText('Md Server Address')
+        self.mdAddress = QtGui.QLineEdit(self)
+        self.mdAddress.setPlaceholderText('Md Server Address')
+        self.tdAddress = QtGui.QLineEdit(self)
+        self.tdAddress.setPlaceholderText('Td Server Address')
         self.brokerid = QtGui.QLineEdit(self)
         self.brokerid.setPlaceholderText('BrokerID')
         self.buttonLogin = QtGui.QPushButton('Login', self)
@@ -38,27 +40,31 @@ class LoginDialog(QtGui.QDialog):
         layout = QtGui.QVBoxLayout(self)
         layout.addWidget(self.userid)
         layout.addWidget(self.passwd)
-        layout.addWidget(self.address)
+        layout.addWidget(self.mdAddress)
+        layout.addWidget(self.tdAddress)
         layout.addWidget(self.brokerid)
         layout.addWidget(self.buttonLogin)
         layout.addWidget(self.statusBar)
 
         self.readCache()
 
-        self.__md.registerListener(EVENT_MD_LOGIN, self.onMdLogin1)
+    def registerListeners(self, engine):
+        engine.registerListener(EVENT_MD_LOGIN, self.onMdLogin)
+        engine.registerListener(EVENT_TD_LOGIN, self.onTdLogin)
 
     def handleLogin(self):
         self.cache()
-        self.__md.login(str(self.userid.text()), str(self.passwd.text()), str(self.address.text()), str(self.brokerid.text()))
-        sleep(0.3)
-        self.emit(QtCore.SIGNAL('successSignal'))
+        self.__ctp.login(str(self.userid.text()), str(self.passwd.text()), str(self.mdAddress.text()), str(self.tdAddress.text()), str(self.brokerid.text()))
+        #sleep(0.3)
+        #self.emit(QtCore.SIGNAL('successSignal'))
 
     def cache(self):
         # remember the user config
         conf = shelve.open('login.conf')
         conf['userid'] = str(self.userid.text())
         conf['passwd'] = str(self.passwd.text())
-        conf['address'] = str(self.address.text())
+        conf['mdAddress'] = str(self.mdAddress.text())
+        conf['tdAddress'] = str(self.tdAddress.text())
         conf['brokerid'] = str(self.brokerid.text())
         conf.close()
 
@@ -68,30 +74,38 @@ class LoginDialog(QtGui.QDialog):
             conf = shelve.open('login.conf', 'r')
             self.userid.setText(conf['userid'])
             self.passwd.setText(conf['passwd'])
-            self.address.setText(conf['address'])
+            self.mdAddress.setText(conf['mdAddress'])
+            self.tdAddress.setText(conf['tdAddress'])
             self.brokerid.setText(conf['brokerid'])
             conf.close()
 
-    def onMdLogin1(self, event):
+    def onMdLogin(self, event):
         if event.error['ErrorID'] == 0:
-            self.statusBar.showMessage('Login succeed!')
+            self.statusBar.showMessage('Md login succeed!')
         else:
-            self.statusBar.showMessage('Login failed, errorMsg: ' + event.error['ErrorMsg'])
+            self.statusBar.showMessage('Md login failed, errorMsg: ' + event.error['ErrorMsg'])
+
+    def onTdLogin(self, event):
+        if event.error['ErrorID'] == 0:
+            self.statusBar.showMessage('Td login succeed!')
+            self.emit(QtCore.SIGNAL('successSignal'))
+        else:
+            self.statusBar.showMessage('Td login failed, errorMsg: ' + event.error['ErrorMsg'].decode('gbk'))
 
 
 class OprationBox(QtGui.QWidget):
-    def __init__(self, parent=None, mdapi=None):
+    def __init__(self, parent=None,ctp=None):
         super(OprationBox, self).__init__(parent)
-        self.__md = mdapi
+        self.__ctp = ctp
 
         self.setGeometry(0, 0, 100, 270)
 
         self.instrument = QtGui.QLineEdit(self)
         self.instrument.setPlaceholderText('InstrumentID')
         self.mdSubButton = QtGui.QPushButton('MdSubscribe', self)
-        self.mdSubButton.clicked.connect(lambda : self.__md.subscribe(str(self.instrument.text())))
+        self.mdSubButton.clicked.connect(lambda : self.__ctp.subMdData(str(self.instrument.text())))
         self.mdUnSubButton = QtGui.QPushButton('MdUnSubscribe', self)
-        self.mdUnSubButton.clicked.connect(lambda : self.__md.unsubscribe(str(self.instrument.text())))
+        self.mdUnSubButton.clicked.connect(lambda : self.__ctp.unsubMdData(str(self.instrument.text())))
 
         layout = QtGui.QVBoxLayout(self)
         layout.addWidget(self.instrument)
@@ -102,9 +116,9 @@ class OprationBox(QtGui.QWidget):
 class MdTable(QtGui.QTableWidget):
     #a table showing marketdata
 
-    def __init__(self, parent=None, mdapi=None):
+    def __init__(self, parent=None, ctp=None):
         super(MdTable, self).__init__(parent)
-        self.__md = mdapi
+        self.__ctp = ctp
 
         self.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.setGeometry(100, 0, 920, 270)
@@ -115,9 +129,10 @@ class MdTable(QtGui.QTableWidget):
         headers = [u'商品代码', u'最新价', u'买一价', u'买量', u'卖一价', u'卖量', u'仓量', u'更新时间', u'更新毫秒']
         self.setHorizontalHeaderLabels(headers)
 
-        self.__md.registerListener(EVENT_MD_DATA, self.onMdData)
-
         self.products = {}
+
+    def registerListeners(self, engine):
+        engine.registerListener(EVENT_MD_DATA, self.onMdData)
 
     def updateRow(self, data, rowNum):
         usefulHeaders = ['InstrumentID', 'LastPrice', 'BidPrice1', 'BidVolume1', 'AskPrice1', 'AskVolume1', 'Volume', 'UpdateTime', 'UpdateMillisec']
@@ -141,15 +156,15 @@ class MdTable(QtGui.QTableWidget):
 
     def errorTooMuchMdSub(self, instrument):
         print('Too much md sub!!')
-        self.__md.unsubscribe(instrument)
+        self.__ctp.unsubMdData(instrument)
 
 
 class DemoGUI(QtGui.QMainWindow):
 
-    def __init__(self, mdapi=None):
+    def __init__(self, ctp):
         super(DemoGUI, self).__init__()
-        self.__md = mdapi
         self.__mainWidget = QtGui.QWidget()
+        self.__ctp = ctp
         self.setCentralWidget(self.__mainWidget)
         self.initUI()
 
@@ -168,10 +183,13 @@ class DemoGUI(QtGui.QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
 
-        self.opBox = OprationBox(self, self.__md)
-        self.mdTable = MdTable(self, self.__md)
+        self.opBox = OprationBox(self, self.__ctp)
+        self.mdTable = MdTable(self, self.__ctp)
 
         grid = QtGui.QGridLayout(self.__mainWidget)
+
+    def registerListeners(self, engine):
+        self.mdTable.registerListeners(engine)
 
 
 
@@ -180,25 +198,31 @@ def main():
 
 
     engine = EventDispatcher()
+    engine.start()
     engine.registerListener(EVENT_MD_LOGIN, onMdLogin)
-    engine.registerListener(EVENT_MD_LOGOUT, onMdLogout)
     engine.registerListener(EVENT_MD_DATA, onMdData)
+    engine.registerListener(EVENT_TD_LOGIN, onTdLogin)
 
-    md = TestMdApi(engine)
+    ctp = Ctp()
+    ctp.registerEngine(engine)
 
-    if LoginDialog(md).exec_() == QtGui.QDialog.Accepted:
-        window = DemoGUI(md)
+    loginDialog = LoginDialog(ctp)
+    loginDialog.registerListeners(engine)
+
+    if loginDialog.exec_() == QtGui.QDialog.Accepted:
+        window = DemoGUI(ctp)
+        window.registerListeners(engine)
         window.show()
 
-        md.subscribe('CF509')
-        md.subscribe('CF511')
-       # md.subscribe('IF1509')
-        md.subscribe('CF601')
-        md.subscribe('CF603')
-        md.subscribe('CF605')
-        md.subscribe('CF607')
-        md.subscribe('IF1510')
-        md.subscribe('IF1512')
+        #md.subscribe('CF509')
+        #md.subscribe('CF511')
+        #md.subscribe('IF1509')
+        #md.subscribe('CF601')
+        #md.subscribe('CF603')
+        #md.subscribe('CF605')
+        #md.subscribe('CF607')
+        #md.subscribe('IF1510')
+        #md.subscribe('IF1512')
 
     sys.exit(app.exec_())
 

@@ -11,17 +11,10 @@ from listeners import *
 
 class TestMdApi(MdApi):
 
-    def __init__(self, engine):
+    def __init__(self):
         super(TestMdApi, self).__init__()
         self.__reqid = 0
-        self.__engine = engine
-        self.__engine.start()
-        self.createFtdcMdApi(os.getcwd() + '\\mdconnection\\')
-
-        #self.usefulHeaders = ['InstrumentID', 'LastPrice', 'BidPrice1', 'BidVolume1', 'AskPrice1', 'AskVolume1', 'Volume', 'UpdateTime', 'UpdateMillisec' ]
-
-    def __del__(self):
-        pass
+        self.__engine = None
 
     def onFrontConnected(self):
         print u'md已连接服务器'
@@ -41,13 +34,6 @@ class TestMdApi(MdApi):
         event = Event(EVENT_MD_LOGIN, data, error, state)
         self.__engine.put(event)
         #print u'用户登录'
-
-
-    def onRspUserLogout(self, data, error, n, last):
-        state = {'n' : n, 'last' : last}
-        event = Event(EVENT_MD_LOGOUT, data, error, state)
-        self.__engine.put(event)
-        #print u'用户登出'
 
     def onRspSubMarketData(self, data,error, n, last):
         #print u'订阅行情应答'
@@ -69,15 +55,18 @@ class TestMdApi(MdApi):
 
     # 以下为主动函数
     def login(self, username, password, address, brokerid):
+
+        self.createFtdcMdApi(os.getcwd() + '\\mdconnection\\')
         self.registerFront(address)         #self.registerFront('tcp://180.168.146.187:10010')
         self.init()
         sleep(0.5)
+
         loginReq = {}
         loginReq['UserID'] = username       #'020956'
         loginReq['Password'] = password     #'18936803910'
         loginReq['BrokerID'] = brokerid     #'9999'
         self.__reqid = self.__reqid + 1
-        self.reqUserLogin(loginReq, 1)
+        self.reqUserLogin(loginReq, self.__reqid)
 
     def subscribe(self, instrumentID):
         self.subscribeMarketData(instrumentID)
@@ -85,8 +74,9 @@ class TestMdApi(MdApi):
     def unsubscribe(self, instrumentID):
         self.unSubscribeMarketData(instrumentID)
 
-    def registerListener(self, event_type, listener):
-        self.__engine.registerListener(event_type, listener)
+    def registerEngine(self, engine):
+        self.__engine = engine
+
 
 def main():
 
@@ -94,10 +84,10 @@ def main():
     engine = EventDispatcher()
     engine.registerListener(EVENT_MD_LOGIN, onMdLogin)
     engine.registerListener(EVNET_MD_RSPERROR, onMdError)
-    engine.registerListener(EVENT_MD_LOGOUT, onMdLogout)
     engine.registerListener(EVENT_MD_DATA, onMdData)
 
-    md = TestMdApi(engine)
+    md = TestMdApi()
+    md.registerEngine(engine)
     md.login('020956', '18936803910', 'tcp://180.168.146.187:10010','9999')
     md.subscribe('CF509')
     sys.exit(app.exec_())

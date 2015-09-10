@@ -22,6 +22,10 @@ def onMdData(event):
     print('\t'.join(usefulData.keys()))
     print('\t'.join(str(value) for value in usefulData.values()))
 
+def onTdLogin(event):
+    pass
+
+
 
 
 
