@@ -56,7 +56,7 @@ class TestMdApi(MdApi):
     # 以下为主动函数
     def login(self, username, password, address, brokerid):
 
-        self.createFtdcMdApi(os.getcwd() + '\\mdconnection\\')
+        self.createFtdcMdApi(os.getcwd() + '/mdconnection/')
         self.registerFront(address)         #self.registerFront('tcp://180.168.146.187:10010')
         self.init()
         sleep(0.5)

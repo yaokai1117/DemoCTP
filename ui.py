@@ -70,7 +70,7 @@ class LoginDialog(QtGui.QDialog):
 
     def readCache(self):
         # read the userconfig
-        if os.path.exists(os.getcwd() + '\\login.conf'):
+        if os.path.exists(os.getcwd() + '/login.conf'):
             conf = shelve.open('login.conf', 'r')
             self.userid.setText(conf['userid'])
             self.passwd.setText(conf['passwd'])
@@ -83,7 +83,7 @@ class LoginDialog(QtGui.QDialog):
         if event.error['ErrorID'] == 0:
             self.statusBar.showMessage('Md login succeed!')
         else:
-            self.statusBar.showMessage('Md login failed, errorMsg: ' + event.error['ErrorMsg'])
+            self.statusBar.showMessage('Md login failed, errorMsg: ' + event.error['ErrorMsg'].decode('gbk'))
 
     def onTdLogin(self, event):
         if event.error['ErrorID'] == 0:
@@ -93,8 +93,15 @@ class LoginDialog(QtGui.QDialog):
             self.statusBar.showMessage('Td login failed, errorMsg: ' + event.error['ErrorMsg'].decode('gbk'))
 
 
+#class SettlementPane(QtGui.QWidget):
+#    def __init__(self, parent=None):
+#        super(SettlementPane, self).__init__(parent)
+
+
+
+
 class OprationBox(QtGui.QWidget):
-    def __init__(self, parent=None,ctp=None):
+    def __init__(self, parent=None, ctp=None):
         super(OprationBox, self).__init__(parent)
         self.__ctp = ctp
 
@@ -213,6 +220,9 @@ def main():
         window = DemoGUI(ctp)
         window.registerListeners(engine)
         window.show()
+        ctp.qrySettleInfo()
+        ctp.qryAccount()
+        ctp.qryInvesor()
 
         #md.subscribe('CF509')
         #md.subscribe('CF511')

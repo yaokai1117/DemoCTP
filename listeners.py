@@ -18,7 +18,7 @@ def onMdError(event):
 
 def onMdData(event):
     usefulHeaders = {'InstrumentID': u'商品代码', 'LastPrice' : u'最新价', 'BidPrice1' : u'买一价', 'BidVolume1' : u'买量', 'AskPrice1' : u'卖一价', 'AskVolume1' : u'卖量', 'Volume' : u'仓量', 'UpdateTime' : u'更新时间', 'UpdateMillisec' : u'更新毫秒' }
-    usefulData = {usefulHeaders[key].encode('gbk') : event.data[key] for key in usefulHeaders.keys()}
+    usefulData = {usefulHeaders[key].encode('utf-8') : event.data[key] for key in usefulHeaders.keys()}
     print('\t'.join(usefulData.keys()))
     print('\t'.join(str(value) for value in usefulData.values()))
 

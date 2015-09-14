@@ -21,7 +21,7 @@ class TestTdApi(TdApi):
         self.__address = ''
         self.__brokerid = ''
 
-        self.createFtdcTraderApi(os.getcwd() + '\\tdconnection\\')
+        self.createFtdcTraderApi(os.getcwd() + '/tdconnection/')
 
 
     def registerEngine(self, engine):
@@ -45,15 +45,57 @@ class TestTdApi(TdApi):
         #print u'用户登录'
 
     def onRspQrySettlementInfo(self, data, error, n, last):
+        for key, value in data.items():
+            print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
+        for key, value in error.items():
+            print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
         state = {'n' : n, 'last' : last}
         event = Event(EVENT_TD_SETTLEINFO, data, error, state)
         self.__engine.put(event)
 
     def onRspSettlementInfoConfirm(self, data, error, n, last):
+        for key, value in data.items():
+            print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
+        for key, value in error.items():
+            print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
         state = {'n' : n, 'last' : last}
         event = Event(EVENT_TD_SETTLECONFIRM, data, error, state)
         self.__engine.put(event)
 
+    def onRspOrderInsert(self, data, error, n, last):
+        print(u'报单错误')
+        print('ErrorID' + error['ErrorID'] + ' ' + 'ErrorMsg' + error['ErrorMsg'].decode('gbk'))
+
+    def onRspOrderAction(self, data, error, n, last):
+        print(u'撤单错误')
+        print('ErrorID' + error['ErrorID'] + ' ' + 'ErrorMsg' + error['ErrorMsg'].decode('gbk'))
+
+    def onRspQryInvestor(self, data, error, n, last):
+        print(u'投资者回报')
+        if error['ErrorID'] == 0:
+            for key, value in data.items():
+                print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
+        else:
+            print('ErrorID' + error['ErrorID'] + 'ErrorMsg' + error['ErrorMsg'])
+
+    def onRspQryInvestorPosition(self, data, error, n, last):
+        print(u'持仓回报')
+        if error['ErrorID'] == 0:
+            for key, value in data.items():
+                print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
+        else:
+            print('ErrorID' + error['ErrorID'] + 'ErrorMsg' + error['ErrorMsg'])
+
+    def onRspQryTradingAccount(self, data, error, n, last):
+        print(u'账户查询回报')
+        for key, value in data.items():
+            print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
+
+
+    #def onRtnOrder(self, data):
+
+
+    # 以下为主动函数
     def login(self, userid, passwd, address, brokerid):
 
         self.__address = address
@@ -84,6 +126,14 @@ class TestTdApi(TdApi):
 
         self.__reqid += 1
         self.reqSettlementInfoConfirm(req, self.__reqid)
+
+    def qryAccount(self):
+        self.__reqid += 1
+        self.reqQryTradingAccount({}, self.__reqid)
+
+    def qryInvestor(self):
+        self.__reqid += 1
+        self.reqQryInvestor({}, self.__reqid)
 
 
 
