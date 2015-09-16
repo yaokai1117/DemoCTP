@@ -90,6 +90,8 @@ class TestTdApi(TdApi):
         print(u'账户查询回报')
         for key, value in data.items():
             print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
+        for key, value in error.items():
+            print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
 
 
     #def onRtnOrder(self, data):
@@ -129,7 +131,11 @@ class TestTdApi(TdApi):
 
     def qryAccount(self):
         self.__reqid += 1
-        self.reqQryTradingAccount({}, self.__reqid)
+        loginReq = {}
+        loginReq['UserID'] = self.__userid
+        loginReq['Password'] = self.__passwd
+        loginReq['BrokerID'] = self.__brokerid
+        self.reqQryTradingAccount(loginReq, self.__reqid)
 
     def qryInvestor(self):
         self.__reqid += 1
@@ -150,25 +156,22 @@ def main():
     td.registerEngine(engine)
     td.login('020956', '18936803910', 'tcp://180.168.146.187:10000', '9999')
 
+    td.subscribePrivateTopic(1)
+    td.subscribePublicTopic(1)
+    
     #td.createFtdcTraderApi('')
 
     #td.registerFront("tcp://180.168.146.187:10000")
 
     #td.init()
 
-    req = {}
-    req['BrokerID'] = '9999'
-    req['InvestorID'] = '020956'
+    #td.qrySettlementInfo()
 
-    reqid += 1
-    #td.reqQrySettlementInfo(req, reqid)
-    sleep(0.5)
+    #td.qryInvestor()
+    #td.qryAccount()
 
-    reqid += 1
-    #td.reqSettlementInfoConfirm(req, reqid)
-    sleep(0.5)
+    exit(app.exec_())
 
-    app.exec_()
 
 if __name__ == '__main__':
     main()
