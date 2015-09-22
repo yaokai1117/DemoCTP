@@ -9,6 +9,9 @@ from listeners import *
 from eventdriven import *
 from ctp import *
 
+# fyabc
+from chartPlotter import ChartWidget
+
 
 class LoginDialog(QtGui.QDialog):
     # login dialog
@@ -166,6 +169,53 @@ class MdTable(QtGui.QTableWidget):
         self.__ctp.unsubMdData(instrument)
 
 
+################################################
+# fyabc
+################################################
+class MdKLineChart(QtGui.QTabWidget):
+    def __init__(self, parent=None, ctp=None):
+        super(MdKLineChart, self).__init__(parent)
+        
+        self.__ctp = ctp
+        
+        self.setGeometry(25, 275, 970, 370)
+        
+        self.tabs = {}                  # a dict of tabs for Instruments
+        
+        self.addInstrument('IF1512')
+
+    def registerListeners(self, engine):
+        engine.registerListener(EVENT_MD_DATA, self.onMdData)
+    
+    def addInstrument(self,InstrumentID):
+        InstrumentID = str(InstrumentID)
+        if InstrumentID not in self.tabs.keys():
+            temptab = ChartWidget(InstrumentID)
+            self.addTab(temptab,InstrumentID)
+            self.tabs[InstrumentID] = temptab
+    
+    def removeInstrument(self,InstrumentID):
+        InstrumentID = str(InstrumentID)
+        if InstrumentID in self.tabs.keys():
+            self.removeTab(self.indexOf(self.tabs[InstrumentID]))
+            self.tabs.pop(InstrumentID)
+    
+    def refresh(self):
+        pass    
+    
+    def onMdData(self,event):
+        ''' send data to chartWidgets'''
+        if event.data['InstrumentID'] in self.tabs.keys(): 
+            (self.tabs[event.data['InstrumentID']]).updateData(event.data)
+            pass
+        #((self.currentWidget()).currentWidget()).plotter.draw()
+    
+    #end test
+
+###########################################################
+# end fyabc
+###########################################################
+
 class DemoGUI(QtGui.QMainWindow):
 
     def __init__(self, ctp):
@@ -192,11 +242,18 @@ class DemoGUI(QtGui.QMainWindow):
 
         self.opBox = OprationBox(self, self.__ctp)
         self.mdTable = MdTable(self, self.__ctp)
+        self.mdKLineChart = MdKLineChart(self, self.__ctp)
+        
+        # connect the subcribe and unsubcribe button to the Chart Tab
+		# fyabc
+        self.opBox.mdSubButton.clicked.connect(lambda : self.mdKLineChart.addInstrument(self.opBox.instrument.text()))
+        self.opBox.mdUnSubButton.clicked.connect(lambda : self.mdKLineChart.removeInstrument(self.opBox.instrument.text()))
 
         grid = QtGui.QGridLayout(self.__mainWidget)
 
     def registerListeners(self, engine):
         self.mdTable.registerListeners(engine)
+        self.mdKLineChart.registerListeners(engine)
 
 
 
