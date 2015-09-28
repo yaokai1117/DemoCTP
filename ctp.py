@@ -6,7 +6,11 @@ from eventdriven import *
 
 
 class Ctp(object):
-    #ctp接口中主动函数的中层封装，
+    '''
+    a encapsuation of the active functions of CTP api,
+    include tdapi and mdapi
+    '''
+
     def __init__(self):
         self.__md = TestMdApi()
         self.__td = TestTdApi()

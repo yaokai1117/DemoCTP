@@ -298,8 +298,8 @@ class ChartWidget(QtGui.QTabWidget):
         self.tab_5s.updateData(self.data[-1])
         self.tab_30s.updateData(self.data[-1])
         
-        print 'the data is updated!!!!!!!!!!!'
-        print timeData,priceData,volumeData
+        #print 'the data is updated!!!!!!!!!!!'
+        #print timeData,priceData,volumeData
         #for key in data.keys():
         #    print key,data[key],type(data[key])
         

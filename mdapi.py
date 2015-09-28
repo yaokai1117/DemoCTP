@@ -10,12 +10,19 @@ from eventdriven import *
 from listeners import *
 
 class TestMdApi(MdApi):
+    '''
+    TestMdApi is a encapsuation of CTP md api.
+    It has two main part,
+    call back functions which work with event driven engine,
+    and active functions such as login, logout
+    '''
 
     def __init__(self):
         super(TestMdApi, self).__init__()
         self.__reqid = 0
         self.__engine = None
 
+    # call back functions here
     def onFrontConnected(self):
         print u'md已连接服务器'
 
@@ -53,7 +60,7 @@ class TestMdApi(MdApi):
         #print u'深度行情通知'
 
 
-    # 以下为主动函数
+    # active functions here
     def login(self, username, password, address, brokerid):
 
         self.createFtdcMdApi(os.getcwd() + '/mdconnection/')

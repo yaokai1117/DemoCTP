@@ -10,6 +10,12 @@ from eventdriven import *
 
 
 class TestTdApi(TdApi):
+    '''
+    TestTdApi is a encapsuation of CTP td api.
+    It has two main part,
+    call back functions which work with event driven engine,
+    and active functions such as login, logout
+    '''
 
     def __init__(self):
         super(TestTdApi, self).__init__()
@@ -27,6 +33,7 @@ class TestTdApi(TdApi):
     def registerEngine(self, engine):
         self.__engine = engine
 
+    #call back functions here
     def onFrontConnected(self):
         print u'td服务器连接'
 
@@ -94,10 +101,8 @@ class TestTdApi(TdApi):
             print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
 
 
-    #def onRtnOrder(self, data):
 
-
-    # 以下为主动函数
+    # active functions here
     def login(self, userid, passwd, address, brokerid):
 
         self.__address = address
