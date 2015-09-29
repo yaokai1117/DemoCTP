@@ -178,7 +178,7 @@ class MdKLineChart(QtGui.QTabWidget):
         
         self.__ctp = ctp
         
-        self.setGeometry(25, 275, 970, 370)
+        self.setGeometry(10, 275, 970, 440)
         
         self.tabs = {}                  # a dict of tabs for Instruments
         
@@ -212,6 +212,30 @@ class MdKLineChart(QtGui.QTabWidget):
     
     #end test
 
+class TdBox(QtGui.QWidget):
+    """a box for trade"""
+    def __init__(self, parent=None, ctp=None):
+        super(TdBox, self).__init__(parent)
+        self.__ctp = ctp
+
+        self.setGeometry(1020, 0, 100, 270)
+
+        self.sendOrderButton = QtGui.QPushButton(u'发单', self)
+
+        layout = QtGui.QVBoxLayout(self)
+        layout.addWidget(self.sendOrderButton)
+
+        self.sendOrderButton.clicked.connect(self.sendOrder)
+
+    def registerListeners(self, engine):
+        pass
+
+    def sendOrder(self):
+        """发单"""
+        pass
+
+
+
 ###########################################################
 # end fyabc
 ###########################################################
@@ -243,6 +267,7 @@ class DemoGUI(QtGui.QMainWindow):
         self.opBox = OprationBox(self, self.__ctp)
         self.mdTable = MdTable(self, self.__ctp)
         self.mdKLineChart = MdKLineChart(self, self.__ctp)
+        self.tdBox = TdBox(self, self.__ctp)
         
         # connect the subcribe and unsubcribe button to the Chart Tab
 		# fyabc
@@ -277,6 +302,7 @@ def main():
         window = DemoGUI(ctp)
         window.registerListeners(engine)
         window.show()
+        window.showMaximized()
         ctp.qrySettleInfo()
         ctp.qryAccount()
         ctp.qryInvesor()
