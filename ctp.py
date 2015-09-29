@@ -38,3 +38,14 @@ class Ctp(object):
 
     def qryInvesor(self):
         self.__td.qryInvestor()
+
+    ##########################
+    # fyabc
+    ##########################
+    def sendOrder(self):
+        #发单
+        pass
+
+    ##########################
+    # end fyabc
+    ##########################

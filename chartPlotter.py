@@ -36,6 +36,8 @@ class ChartPlotter(FigureCanvas):
         
         self.chartInit(self.priceChart,timescale)
         self.chartInit(self.volumeChart,timescale)
+
+        self.trendlinesData = {}                    #存储所有趋势线的字典，键=趋势线名，值=趋势线对象
     
     def chartInit(self,chart,timescale=1.0):     
         #self.priceChart.set_ylabel('price', fontsize='small')
@@ -90,9 +92,12 @@ class ChartPlotter(FigureCanvas):
         
         self.priceChart.add_line(shadowline)
         self.priceChart.add_patch(rect)
-        self.priceChart.autoscale_view() 
-    
-    def adjustKLine(self, data, timescale=1.0, colorup='r', colorflat='w',colordown='g'): 
+
+        #返回画的图形，方便后面adjust
+        return shadowline, rect
+
+    def adjustKLine(self, data, shadowLine, rect,
+                    timescale=1.0, colorup='r', colorflat='w',colordown='g'):
         open, close, high, low = data[1:5]
             
         if close > open:
@@ -105,11 +110,10 @@ class ChartPlotter(FigureCanvas):
         if close == open:
             close = open + 0.005
         
-        (self.priceChart.patches[-1]).set(height=close-open, facecolor=color, edgecolor=color)
-        (self.priceChart.lines[-1]).set(ydata=(low,high), color=color)
+        rect.set(height=close-open, facecolor=color, edgecolor=color)
+        shadowLine.set(ydata=(low,high), color=color)
         
         self.priceChart.relim()
-        self.priceChart.autoscale_view()
         
     def plotVolume(self, data, timescale=1.0,
                    width=0.9, colorup='r', colorflat='w',colordown='g', alpha=1.0):
@@ -129,10 +133,11 @@ class ChartPlotter(FigureCanvas):
             height = volume, facecolor=color, edgecolor=color,)  
             
         self.volumeChart.add_patch(rect)
-        self.volumeChart.autoscale_view()
-        pass
+
+        #返回画的图形，方便后面adjust
+        return rect
     
-    def adjustVolume(self, data, timescale=1.0, colorup='r', colorflat='w',colordown='g'):
+    def adjustVolume(self, data, rect, timescale=1.0, colorup='r', colorflat='w',colordown='g'):
         open, close = data[1:3]
         volume = data[5]
         
@@ -143,13 +148,38 @@ class ChartPlotter(FigureCanvas):
         else:
             color = colordown
             
-        (self.volumeChart.patches[-1]).set(height=volume, facecolor=color, edgecolor=color)
+        rect.set(height=volume, facecolor=color, edgecolor=color)
         
         self.volumeChart.relim()
-        self.volumeChart.autoscale_view()
         
         pass
-        
+
+    def addTrendline(self, trendline):
+        """加入一条趋势线
+        trendline 为趋势线名
+        """
+        if trendline not in self.trendlinesData:
+            tempLine = Line2D(xdata=[],ydata=[])
+            self.trendlinesData[trendline] = tempLine
+            self.priceChart.add_line(tempLine)
+
+    def plotTrendline(self, data, trendline):
+        """画一条趋势线的下一个点"""
+        if trendline in self.trendlinesData:
+            xdata = self.trendlinesData[trendline].get_xdata()
+            ydata = self.trendlinesData[trendline].get_ydata()
+            xdata.append(data[0])
+            ydata.append(data[1])
+            self.trendlinesData[trendline].set_xdata(xdata)
+            self.trendlinesData[trendline].set_ydata(ydata)
+
+    def adjustTrendline(self, newydata, trendline):
+        """调整一条趋势线的y数据"""
+        if trendline in self.trendlinesData:
+            ydata = self.trendlinesData[trendline].get_ydata()
+            ydata[-1] = newydata
+            self.trendlinesData[trendline].set_ydata(ydata)
+
 
 class ChartBar(QtGui.QWidget):
     def __init__(self,InstrumentID, timescale=1.0, parent=None, initData=None):
@@ -166,7 +196,15 @@ class ChartBar(QtGui.QWidget):
         self.setLayout(self.layout)
         self.data = []                    #time,open,close,high,low,volume
         #self.data.append([730000,4455,4494,4520,4397,714])       
-        self.currtime = 0.0  
+        self.currtime = 0.0
+
+        self.currShadowLine = None                      #当前的影线
+        self.currRect = None                            #当前的实体线
+        self.currVolumeBar = None                       #当前的成交量线
+        self.trendlineNames = ['MA5']                   #趋势线名称集合
+
+        for trendline in self.trendlineNames:           #把趋势线添加到图表中
+            self.plotter.addTrendline(trendline)
         pass
     
     def updateData(self,data):
@@ -174,9 +212,9 @@ class ChartBar(QtGui.QWidget):
             self.currtime = self.__timescale/86400*int(data[0]*86400/self.__timescale)
             self.data.append([self.currtime,data[1],data[1],data[1],data[1],data[2]])
             
-            self.plotter.plotKLine(self.data[-1],timescale=self.__timescale)
-            self.plotter.plotVolume(self.data[-1],timescale=self.__timescale)
-            self.plotter.draw()
+            self.currShadowLine,self.currRect = self.plotter.plotKLine(self.data[-1],timescale=self.__timescale)
+            self.currVolumeBar = self.plotter.plotVolume(self.data[-1],timescale=self.__timescale)
+            self.calTrendlineAndPlot()
         else:
             self.data[-1][2] = data[1]
             if data[1] > self.data[-1][3]:
@@ -184,17 +222,34 @@ class ChartBar(QtGui.QWidget):
             if data[1] < self.data[-1][4]:
                 self.data[-1][4] = data[1]
             self.data[-1][5] = self.data[-1][5] + data[2]
-            self.plotter.adjustKLine(self.data[-1],timescale=self.__timescale)
-            self.plotter.adjustVolume(self.data[-1],timescale=self.__timescale)
-            self.plotter.draw()
-            
-        print self.__InstrumentID + ' ' + str(self.__timescale)
-        print self.data[-1]
-        print ''
-        pass
+            self.plotter.adjustKLine(self.data[-1],self.currShadowLine,self.currRect,timescale=self.__timescale)
+            self.plotter.adjustVolume(self.data[-1],self.currVolumeBar,timescale=self.__timescale)
+            self.calTrendlineAndAdjust()
+
+        self.plotter.priceChart.autoscale_view()    #最后统一调整刻度
+        self.plotter.volumeChart.autoscale_view()
+        self.plotter.draw()                         #最后统一画图
+
+    def calTrendlineAndPlot(self):
+        """计算各趋势线的值并画图"""
+        if len(self.data) >= 5:
+            tempPrice = 0.0
+            for i in range(-5,0):
+                tempPrice += self.data[i][2]
+            tempPrice /= 5
+            self.plotter.plotTrendline((self.data[-1][0],tempPrice),'MA5')
+
+    def calTrendlineAndAdjust(self):
+        """计算各趋势线的值并调整图"""
+        if len(self.data) >= 5:
+            tempPrice = 0.0
+            for i in range(-5,0):
+                tempPrice += self.data[i][2]
+            tempPrice /= 5
+            self.plotter.adjustTrendline(tempPrice,'MA5')
 
     def initPlot(self):
-	  pass
+        pass
     
     
 class ChartWidget(QtGui.QTabWidget):
@@ -242,45 +297,45 @@ class ChartWidget(QtGui.QTabWidget):
         
         data['UpdateTime'] = '14:11:14'
         data['UpdateMillisec'] = 0
-        data['LastPrice'] = 2230.0
+        data['LastPrice'] = 2230.7
         data['BidVolume1'] = 12
         data['AskVolume1'] = 14
         
         #self.updateData(data)
         #time.sleep(1)
         
-        #data['UpdateTime'] = '14:11:14'
-        #data['UpdateMillisec'] = 400
-        #data['LastPrice'] = 229.6
-        #data['BidVolume1'] = 12
-        #data['AskVolume1'] = 14
+        data['UpdateTime'] = '14:11:14'
+        data['UpdateMillisec'] = 400
+        data['LastPrice'] = 2219.6
+        data['BidVolume1'] = 12
+        data['AskVolume1'] = 14
         
         #self.updateData(data)
         #time.sleep(1)
         
-        #data['UpdateTime'] = '14:11:15'
-        #data['UpdateMillisec'] = 0
-        #data['LastPrice'] = 221.1
-        #data['BidVolume1'] = 12
-        #data['AskVolume1'] = 14
+        data['UpdateTime'] = '14:11:15'
+        data['UpdateMillisec'] = 0
+        data['LastPrice'] = 2215.1
+        data['BidVolume1'] = 12
+        data['AskVolume1'] = 14
         
         #self.updateData(data)
         #time.sleep(1)
         
-        #data['UpdateTime'] = '14:11:15'
-        #data['UpdateMillisec'] = 500
-        #data['LastPrice'] = 225.6
-        #data['BidVolume1'] = 12
-        #data['AskVolume1'] = 14
+        data['UpdateTime'] = '14:11:15'
+        data['UpdateMillisec'] = 500
+        data['LastPrice'] = 2212.6
+        data['BidVolume1'] = 12
+        data['AskVolume1'] = 14
         
         #self.updateData(data)
         #time.sleep(1)
         
-        #data['UpdateTime'] = '14:11:15'
-        #data['UpdateMillisec'] = 800
-        #data['LastPrice'] = 224.7
-        #data['BidVolume1'] = 12
-        #data['AskVolume1'] = 14
+        data['UpdateTime'] = '14:11:15'
+        data['UpdateMillisec'] = 800
+        data['LastPrice'] = 2220.7
+        data['BidVolume1'] = 12
+        data['AskVolume1'] = 14
         
         #self.updateData(data)
         #time.sleep(1)

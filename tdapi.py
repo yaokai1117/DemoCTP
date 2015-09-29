@@ -146,6 +146,10 @@ class TestTdApi(TdApi):
         self.__reqid += 1
         self.reqQryInvestor({}, self.__reqid)
 
+    def sendOrder(self):
+        """发单"""
+        pass
+
 
 
 
