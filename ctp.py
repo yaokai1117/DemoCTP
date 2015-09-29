@@ -6,10 +6,10 @@ from eventdriven import *
 
 
 class Ctp(object):
-    '''
+    """
     a encapsuation of the active functions of CTP api,
     include tdapi and mdapi
-    '''
+    """
 
     def __init__(self):
         self.__md = TestMdApi()

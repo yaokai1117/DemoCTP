@@ -9,7 +9,7 @@ from listeners import *
 from eventdriven import *
 from ctp import *
 
-from fethdata import DataFetcher
+#from fetchdata import DataFetcher
 
 # fyabc
 from chartPlotter import ChartWidget
@@ -297,8 +297,8 @@ def main():
     ctp = Ctp()
     ctp.registerEngine(engine)
 
-    dataFetcher = DataFetcher();
-    dataFetcher.registerListeners(engine)
+    #dataFetcher = DataFetcher();
+    #dataFetcher.registerListeners(engine)
 
     loginDialog = LoginDialog(ctp)
     loginDialog.registerListeners(engine)
@@ -308,9 +308,9 @@ def main():
         window.registerListeners(engine)
         window.show()
         window.showMaximized()
-        ctp.qrySettleInfo()
-        ctp.qryAccount()
-        ctp.qryInvesor()
+        #ctp.qrySettleInfo()
+        #ctp.qryAccount()
+        #ctp.qryInvesor()
 
 
     sys.exit(app.exec_())
