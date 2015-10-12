@@ -10,8 +10,18 @@ from eventdriven import *
 
 
 class TestTdApi(TdApi):
+    """
+    TestTdApi is a encapsuation of CTP td api.
+    It has two main part,
+    call back functions which work with event driven engine,
+    and active functions such as login, logout
+    """
 
     def __init__(self):
+        """
+        Initialization.
+        userid, password... is saved for sending an order
+        """
         super(TestTdApi, self).__init__()
         self.__reqid = 0
         self.__engine = None
@@ -25,8 +35,11 @@ class TestTdApi(TdApi):
 
 
     def registerEngine(self, engine):
+        """ register a event driven engine, so that call back functions can put different event in """
         self.__engine = engine
 
+    # call back functions here
+    # this functions usually put an event to the event engine
     def onFrontConnected(self):
         print u'td服务器连接'
 
@@ -93,13 +106,10 @@ class TestTdApi(TdApi):
         for key, value in error.items():
             print(str(key).decode('gbk') + ':' + str(value).decode('gbk'))
 
-
-    #def onRtnOrder(self, data):
-
-
-    # 以下为主动函数
+    # active functions here
+    # these functions can be called by user
     def login(self, userid, passwd, address, brokerid):
-
+        """ login the td server """
         self.__address = address
         self.registerFront(address)
         self.init()
@@ -117,8 +127,7 @@ class TestTdApi(TdApi):
 
 
     def qrySettlementInfo(self):
-        # 在查询过后自动进行confirm
-
+        """ do confirming automatically after query """
         req = {}
         req['BrokerID'] = self.__brokerid
         req['InvestorID'] = self.__userid
@@ -130,6 +139,7 @@ class TestTdApi(TdApi):
         self.reqSettlementInfoConfirm(req, self.__reqid)
 
     def qryAccount(self):
+        """ query account massage """
         self.__reqid += 1
         loginReq = {}
         loginReq['UserID'] = self.__userid
@@ -138,11 +148,12 @@ class TestTdApi(TdApi):
         self.reqQryTradingAccount(loginReq, self.__reqid)
 
     def qryInvestor(self):
+        """ quety investor message """
         self.__reqid += 1
         self.reqQryInvestor({}, self.__reqid)
 
     def sendOrder(self):
-        """发单"""
+        """ send order """
         pass
 
 

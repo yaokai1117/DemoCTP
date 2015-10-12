@@ -9,6 +9,8 @@ from listeners import *
 from eventdriven import *
 from ctp import *
 
+#from fetchdata import DataFetcher
+
 # fyabc
 from chartPlotter import ChartWidget
 
@@ -94,13 +96,6 @@ class LoginDialog(QtGui.QDialog):
             self.emit(QtCore.SIGNAL('successSignal'))
         else:
             self.statusBar.showMessage('Td login failed, errorMsg: ' + event.error['ErrorMsg'].decode('gbk'))
-
-
-#class SettlementPane(QtGui.QWidget):
-#    def __init__(self, parent=None):
-#        super(SettlementPane, self).__init__(parent)
-
-
 
 
 class OprationBox(QtGui.QWidget):
@@ -209,8 +204,7 @@ class MdKLineChart(QtGui.QTabWidget):
             (self.tabs[event.data['InstrumentID']]).updateData(event.data)
             pass
         #((self.currentWidget()).currentWidget()).plotter.draw()
-    
-    #end test
+
 
 class TdBox(QtGui.QWidget):
     """a box for trade"""
@@ -233,7 +227,6 @@ class TdBox(QtGui.QWidget):
     def sendOrder(self):
         """发单"""
         pass
-
 
 
 ###########################################################
@@ -270,7 +263,7 @@ class DemoGUI(QtGui.QMainWindow):
         self.tdBox = TdBox(self, self.__ctp)
         
         # connect the subcribe and unsubcribe button to the Chart Tab
-		# fyabc
+        # fyabc
         self.opBox.mdSubButton.clicked.connect(lambda : self.mdKLineChart.addInstrument(self.opBox.instrument.text()))
         self.opBox.mdUnSubButton.clicked.connect(lambda : self.mdKLineChart.removeInstrument(self.opBox.instrument.text()))
 
@@ -281,10 +274,8 @@ class DemoGUI(QtGui.QMainWindow):
         self.mdKLineChart.registerListeners(engine)
 
 
-
 def main():
     app = QtGui.QApplication(sys.argv)
-
 
     engine = EventDispatcher()
     engine.start()
@@ -295,6 +286,9 @@ def main():
     ctp = Ctp()
     ctp.registerEngine(engine)
 
+    #dataFetcher = DataFetcher()
+    #dataFetcher.registerListeners(engine)
+
     loginDialog = LoginDialog(ctp)
     loginDialog.registerListeners(engine)
 
@@ -304,19 +298,8 @@ def main():
         window.show()
         window.showMaximized()
         ctp.qrySettleInfo()
-        ctp.qryAccount()
-        ctp.qryInvesor()
-
-        #md.subscribe('CF509')
-        #md.subscribe('CF511')
-        #md.subscribe('IF1509')
-        #md.subscribe('CF601')
-        #md.subscribe('CF603')
-        #md.subscribe('CF605')
-        #md.subscribe('CF607')
-        #md.subscribe('IF1510')
-        #md.subscribe('IF1512')
-        
+        #ctp.qryAccount()
+        #ctp.qryInvesor()
 
     sys.exit(app.exec_())
 

@@ -4,7 +4,7 @@ from collections import defaultdict
 from Queue import Queue, Empty
 from threading import Thread
 
-
+# Definition of the type of events
 EVENT_MD_LOGIN = 'md_login'
 EVNET_MD_RSPERROR = 'md_error'
 EVENT_MD_DATA = 'md_data'
@@ -14,7 +14,11 @@ EVENT_TD_SETTLEINFO = 'td_settleinfo'
 EVENT_TD_SETTLECONFIRM = 'td_settleconfirm'
 
 class Event(object):
-    '''definition of a event'''
+    """
+    Definition of a event.
+    A event has a type field, a data field, a error field and a state filed.
+    """
+
     def __init__(self, type=None, data=None, error=None, state=None):
         self.type = type
         self.data = data
@@ -22,6 +26,9 @@ class Event(object):
         self.state = state
 
 class EventDispatcher(object):
+    """
+    EventDispatcher handle different kind of event, listener functions can be registered on it
+    """
 
     def __init__(self):
         self.__events = Queue()
@@ -42,8 +49,7 @@ class EventDispatcher(object):
             for listener in self.__listeners[event.type]:
                 listener(event)
 
-
-    def  start(self):
+    def start(self):
         if self.__active == False:
             self.__active = True
             self.__thread.start()
