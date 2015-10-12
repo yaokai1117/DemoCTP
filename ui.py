@@ -98,13 +98,6 @@ class LoginDialog(QtGui.QDialog):
             self.statusBar.showMessage('Td login failed, errorMsg: ' + event.error['ErrorMsg'].decode('gbk'))
 
 
-#class SettlementPane(QtGui.QWidget):
-#    def __init__(self, parent=None):
-#        super(SettlementPane, self).__init__(parent)
-
-
-
-
 class OprationBox(QtGui.QWidget):
     def __init__(self, parent=None, ctp=None):
         super(OprationBox, self).__init__(parent)
@@ -211,8 +204,7 @@ class MdKLineChart(QtGui.QTabWidget):
             (self.tabs[event.data['InstrumentID']]).updateData(event.data)
             pass
         #((self.currentWidget()).currentWidget()).plotter.draw()
-    
-    #end test
+
 
 class TdBox(QtGui.QWidget):
     """a box for trade"""
@@ -235,7 +227,6 @@ class TdBox(QtGui.QWidget):
     def sendOrder(self):
         """发单"""
         pass
-
 
 
 ###########################################################
@@ -272,7 +263,7 @@ class DemoGUI(QtGui.QMainWindow):
         self.tdBox = TdBox(self, self.__ctp)
         
         # connect the subcribe and unsubcribe button to the Chart Tab
-		# fyabc
+        # fyabc
         self.opBox.mdSubButton.clicked.connect(lambda : self.mdKLineChart.addInstrument(self.opBox.instrument.text()))
         self.opBox.mdUnSubButton.clicked.connect(lambda : self.mdKLineChart.removeInstrument(self.opBox.instrument.text()))
 
@@ -283,10 +274,8 @@ class DemoGUI(QtGui.QMainWindow):
         self.mdKLineChart.registerListeners(engine)
 
 
-
 def main():
     app = QtGui.QApplication(sys.argv)
-
 
     engine = EventDispatcher()
     engine.start()
@@ -297,7 +286,7 @@ def main():
     ctp = Ctp()
     ctp.registerEngine(engine)
 
-    #dataFetcher = DataFetcher();
+    #dataFetcher = DataFetcher()
     #dataFetcher.registerListeners(engine)
 
     loginDialog = LoginDialog(ctp)
@@ -308,10 +297,9 @@ def main():
         window.registerListeners(engine)
         window.show()
         window.showMaximized()
-        #ctp.qrySettleInfo()
+        ctp.qrySettleInfo()
         #ctp.qryAccount()
         #ctp.qryInvesor()
-
 
     sys.exit(app.exec_())
 

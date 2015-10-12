@@ -3,3 +3,4 @@
 *.con*
 mdconnection/*
 tdconnection/*
+.idea/*

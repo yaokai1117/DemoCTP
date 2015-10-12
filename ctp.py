@@ -32,7 +32,6 @@ class Ctp(object):
     def qrySettleInfo(self):
         self.__td.qrySettlementInfo()
 
-
     def qryAccount(self):
         self.__td.qryAccount()
 
