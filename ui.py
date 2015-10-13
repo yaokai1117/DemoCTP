@@ -3,6 +3,7 @@
 import sys
 import os
 import shelve
+from collections import OrderedDict
 from PyQt4 import QtGui, QtCore
 
 from listeners import *
@@ -177,56 +178,133 @@ class MdKLineChart(QtGui.QTabWidget):
         
         self.tabs = {}                  # a dict of tabs for Instruments
         
-        self.addInstrument('IF1512')
+        #self.addInstrument('IF1512')
 
     def registerListeners(self, engine):
         engine.registerListener(EVENT_MD_DATA, self.onMdData)
-    
+
     def addInstrument(self,InstrumentID):
         InstrumentID = str(InstrumentID)
         if InstrumentID not in self.tabs.keys():
             temptab = ChartWidget(InstrumentID)
             self.addTab(temptab,InstrumentID)
             self.tabs[InstrumentID] = temptab
-    
+
     def removeInstrument(self,InstrumentID):
         InstrumentID = str(InstrumentID)
         if InstrumentID in self.tabs.keys():
             self.removeTab(self.indexOf(self.tabs[InstrumentID]))
             self.tabs.pop(InstrumentID)
-    
+
     def refresh(self):
-        pass    
-    
+        pass
+
     def onMdData(self,event):
         ''' send data to chartWidgets'''
-        if event.data['InstrumentID'] in self.tabs.keys(): 
+        if event.data['InstrumentID'] in self.tabs.keys():
             (self.tabs[event.data['InstrumentID']]).updateData(event.data)
             pass
         #((self.currentWidget()).currentWidget()).plotter.draw()
 
+    #end test
 
 class TdBox(QtGui.QWidget):
     """a box for trade"""
+
+    directionDict = OrderedDict()
+    directionDict['0'] = u'买'
+    directionDict['1'] = u'卖'
+
+    offsetDict = OrderedDict()
+    offsetDict['0'] = u'开仓'
+    offsetDict['1'] = u'平仓'
+    offsetDict['3'] = u'平今'
+
+    priceTypeDict = OrderedDict()
+    priceTypeDict['1'] = u'任意价'
+    priceTypeDict['2'] = u'限价'
+    priceTypeDict['3'] = u'最优价'
+    priceTypeDict['4'] = u'最新价'
+
+    directionReverseDict = {value:key for key,value in directionDict.items()}
+    offsetReverseDict = {value:key for key, value in offsetDict.items()}
+    priceTypeReverseDict = {value:key for key, value in priceTypeDict.items()}
+
     def __init__(self, parent=None, ctp=None):
         super(TdBox, self).__init__(parent)
         self.__ctp = ctp
 
-        self.setGeometry(1020, 0, 100, 270)
+        self.setGeometry(1020, 0, 275, 280)
 
-        self.sendOrderButton = QtGui.QPushButton(u'发单', self)
+        #Info of the order to be sent and editor
+        labelID = QtGui.QLabel(u'合约代码')
+        labelDirection = QtGui.QLabel(u'委托类型')
+        labelOffset = QtGui.QLabel(u'开平')
+        labelPrice = QtGui.QLabel(u'价格')
+        labelVolume = QtGui.QLabel(u'手数')
+        labelPriceType = QtGui.QLabel(u'价格类型')
 
-        layout = QtGui.QVBoxLayout(self)
-        layout.addWidget(self.sendOrderButton)
+        self.EditID = QtGui.QLineEdit()
 
-        self.sendOrderButton.clicked.connect(self.sendOrder)
+        self.EditDirection = QtGui.QComboBox()
+        self.EditDirection.addItems(self.directionDict.values())
+        self.EditOffset = QtGui.QComboBox()
+        self.EditOffset.addItems(self.offsetDict.values())
+
+        self.EditPrice = QtGui.QDoubleSpinBox()
+        self.EditPrice.setDecimals(2)
+        self.EditPrice.setMinimum(0)
+        self.EditPrice.setMaximum(1000000)
+
+        self.EditVolume = QtGui.QSpinBox()
+        self.EditVolume.setMinimum(0)
+        self.EditVolume.setMaximum(1000000)
+
+        self.EditPriceType = QtGui.QComboBox()
+        self.EditPriceType.addItems(self.priceTypeDict.values())
+
+        #Info Layout
+        tdInfo = QtGui.QGridLayout()
+        tdInfo.setColumnStretch(0,100)
+        tdInfo.addWidget(labelID, 0, 0)
+        tdInfo.addWidget(labelDirection, 1, 0)
+        tdInfo.addWidget(labelOffset, 2, 0)
+        tdInfo.addWidget(labelPrice, 3, 0)
+        tdInfo.addWidget(labelVolume, 4, 0)
+        tdInfo.addWidget(labelPriceType, 5, 0)
+        tdInfo.addWidget(self.EditID, 0, 1)
+        tdInfo.addWidget(self.EditDirection, 1, 1)
+        tdInfo.addWidget(self.EditOffset, 2, 1)
+        tdInfo.addWidget(self.EditPrice, 3, 1)
+        tdInfo.addWidget(self.EditVolume, 4, 1)
+        tdInfo.addWidget(self.EditPriceType, 5, 1)
+
+        #button for send order
+        self.tdSendOrderButton = QtGui.QPushButton(u'发单', self)
+
+        tdBoxLayout = QtGui.QVBoxLayout(self)
+        tdBoxLayout.addLayout(tdInfo)
+        tdBoxLayout.addWidget(self.tdSendOrderButton)
+
+        self.tdSendOrderButton.clicked.connect(self.sendOrder)
 
     def registerListeners(self, engine):
         pass
 
     def sendOrder(self):
         """发单"""
+        instrumentId = str(self.EditID.text())
+
+        exchangeId = 0
+        direction = self.directionReverseDict[unicode(self.EditDirection.currentText())]
+        offset = self.offsetReverseDict[unicode(self.EditOffset.currentText())]
+        price = float(self.EditPrice.value())
+        volume = int(self.EditVolume.value())
+        priceType = self.priceTypeReverseDict[unicode(self.EditPriceType.currentText())]
+
+        self.__ctp.sendOrder(instrumentId, exchangeId, price, priceType, volume, direction, offset)
         pass
+
 
 
 ###########################################################
@@ -240,10 +318,11 @@ class DemoGUI(QtGui.QMainWindow):
         self.__mainWidget = QtGui.QWidget()
         self.__ctp = ctp
         self.setCentralWidget(self.__mainWidget)
+        self.bar = self.statusBar()
         self.initUI()
 
     def initUI(self):
-        self.statusBar().showMessage('Ready')
+        self.bar.showMessage('Ready')
         self.setGeometry(200, 200, 1020, 720)
         self.setWindowTitle('DemoGUI')
 
@@ -272,6 +351,10 @@ class DemoGUI(QtGui.QMainWindow):
     def registerListeners(self, engine):
         self.mdTable.registerListeners(engine)
         self.mdKLineChart.registerListeners(engine)
+
+    # def updateLog(self, event):
+    #     log = event.error['log']
+    #     self.bar.showMessage(log)
 
 
 def main():
