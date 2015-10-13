@@ -41,8 +41,9 @@ class Ctp(object):
     ##########################
     # fyabc
     ##########################
-    def sendOrder(self):
+    def sendOrder(self, instrumentId, exchangeId, price, priceType, volume, direction, offset):
         #发单
+        self.__td.sendOrder(instrumentId, exchangeId, price, priceType, volume, direction, offset)
         pass
 
     ##########################

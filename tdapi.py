@@ -7,6 +7,7 @@ from time import sleep
 
 from vnctptd import *
 from eventdriven import *
+from ctp_data_type import defineDict
 
 
 class TestTdApi(TdApi):
@@ -24,6 +25,7 @@ class TestTdApi(TdApi):
         """
         super(TestTdApi, self).__init__()
         self.__reqid = 0
+        self.__orderref = 0     #报单编号
         self.__engine = None
 
         self.__userid = ''
@@ -77,11 +79,11 @@ class TestTdApi(TdApi):
 
     def onRspOrderInsert(self, data, error, n, last):
         print(u'报单错误')
-        print('ErrorID' + error['ErrorID'] + ' ' + 'ErrorMsg' + error['ErrorMsg'].decode('gbk'))
+        print('ErrorID:' + str(error['ErrorID']) + ' ' + 'ErrorMsg:' + error['ErrorMsg'].decode('gbk'))
 
     def onRspOrderAction(self, data, error, n, last):
         print(u'撤单错误')
-        print('ErrorID' + error['ErrorID'] + ' ' + 'ErrorMsg' + error['ErrorMsg'].decode('gbk'))
+        print('ErrorID:' + str(error['ErrorID']) + ' ' + 'ErrorMsg:' + error['ErrorMsg'].decode('gbk'))
 
     def onRspQryInvestor(self, data, error, n, last):
         print(u'投资者回报')
@@ -152,9 +154,36 @@ class TestTdApi(TdApi):
         self.__reqid += 1
         self.reqQryInvestor({}, self.__reqid)
 
-    def sendOrder(self):
-        """ send order """
-        pass
+    def sendOrder(self, instrumentId, exchangeId, price, priceType, volume, direction, offset):
+        """发单"""
+        self.__reqid += 1
+        req = {}
+
+        req['InstrumentID'] = instrumentId
+        req['OrderPriceType'] = priceType
+        req['LimitPrice'] = price
+        req['VolumeTotalOriginal'] = volume
+        req['Direction'] = direction
+        req['CombOffsetFlag'] = offset
+
+        self.__orderref += 1
+        req['OrderRef'] = str(self.__orderref)
+
+        req['InvestorID'] = self.__userid
+        req['UserID'] = self.__userid
+        req['BrokerID'] = self.__brokerid
+        req['CombHedgeFlag'] = defineDict['THOST_FTDC_HF_Speculation']       # 投机单
+        req['ContingentCondition'] = defineDict['THOST_FTDC_CC_Immediately'] # 立即发单
+        req['ForceCloseReason'] = defineDict['THOST_FTDC_FCC_NotForceClose'] # 非强平
+        req['IsAutoSuspend'] = 0                                             # 非自动挂起
+        req['TimeCondition'] = defineDict['THOST_FTDC_TC_GFD']               # 今日有效
+        req['VolumeCondition'] = defineDict['THOST_FTDC_VC_AV']              # 任意成交量
+        req['MinVolume'] = 1                                                 # 最小成交量为1
+
+        self.reqOrderInsert(req, self.__reqid)
+
+        # 返回订单号，便于某些算法进行动态管理
+        return self.__orderref
 
 
 
