@@ -10,14 +10,18 @@ from listeners import *
 from eventdriven import *
 from ctp import *
 
-#from fetchdata import DataFetcher
+from fetchdata import DataFetcher
 
 # fyabc
 from chartPlotter import ChartWidget
 
 
 class LoginDialog(QtGui.QDialog):
-    # login dialog
+    """
+    Loging dialog.
+    User input his address, id, password and broker id here,
+    if td account login successfully, this dialog is accepted.
+    """
 
     def __init__(self, ctp):
         super(LoginDialog, self).__init__()
@@ -41,6 +45,7 @@ class LoginDialog(QtGui.QDialog):
 
         self.statusBar = QtGui.QStatusBar()
 
+        # accept signal
         self.connect(self, QtCore.SIGNAL('successSignal'), self.accept)
 
         layout = QtGui.QVBoxLayout(self)
@@ -65,7 +70,7 @@ class LoginDialog(QtGui.QDialog):
         #self.emit(QtCore.SIGNAL('successSignal'))
 
     def cache(self):
-        # remember the user config
+        """ save the user config"""
         conf = shelve.open('login.conf')
         conf['userid'] = str(self.userid.text())
         conf['passwd'] = str(self.passwd.text())
@@ -75,7 +80,7 @@ class LoginDialog(QtGui.QDialog):
         conf.close()
 
     def readCache(self):
-        # read the userconfig
+        """ read the userconfig"""
         if os.path.exists(os.getcwd() + '/login.conf'):
             conf = shelve.open('login.conf', 'r')
             self.userid.setText(conf['userid'])
@@ -100,6 +105,13 @@ class LoginDialog(QtGui.QDialog):
 
 
 class OprationBox(QtGui.QWidget):
+    """
+    This box is for market data operations such as subscribing market data of a product
+    """
+
+    subSignal = QtCore.pyqtSignal(str, name='subSignal')
+    unsubSignal = QtCore.pyqtSignal(str, name='unsubSignal')
+
     def __init__(self, parent=None, ctp=None):
         super(OprationBox, self).__init__(parent)
         self.__ctp = ctp
@@ -108,10 +120,10 @@ class OprationBox(QtGui.QWidget):
 
         self.instrument = QtGui.QLineEdit(self)
         self.instrument.setPlaceholderText('InstrumentID')
-        self.mdSubButton = QtGui.QPushButton('MdSubscribe', self)
-        self.mdSubButton.clicked.connect(lambda : self.__ctp.subMdData(str(self.instrument.text())))
-        self.mdUnSubButton = QtGui.QPushButton('MdUnSubscribe', self)
-        self.mdUnSubButton.clicked.connect(lambda : self.__ctp.unsubMdData(str(self.instrument.text())))
+        self.mdSubButton = QtGui.QPushButton('Subscribe', self)
+        self.mdSubButton.clicked.connect(self.handleClickSub)
+        self.mdUnSubButton = QtGui.QPushButton('UnSubscribe', self)
+        self.mdUnSubButton.clicked.connect(self.handleClickUnsub)
 
         layout = QtGui.QVBoxLayout(self)
         layout.addWidget(self.instrument)
@@ -119,8 +131,19 @@ class OprationBox(QtGui.QWidget):
         layout.addWidget(self.mdUnSubButton)
 
 
+    def handleClickSub(self):
+        self.__ctp.subMdData(str(self.instrument.text()))
+        self.subSignal.emit(str(self.instrument.text()))
+
+    def handleClickUnsub(self):
+        self.__ctp.unsubMdData(str(self.instrument.text()))
+        self.unsubSignal.emit(str(self.instrument.text()))
+
+
 class MdTable(QtGui.QTableWidget):
-    #a table showing marketdata
+    """
+    A table showing market data, automatically updates when new market data comes
+    """
 
     def __init__(self, parent=None, ctp=None):
         super(MdTable, self).__init__(parent)
@@ -146,8 +169,22 @@ class MdTable(QtGui.QTableWidget):
                 newItem = QtGui.QTableWidgetItem(str(data[name]))
                 self.setItem(rowNum, n, newItem)
 
-    def refresh(self):
-        pass
+    def removeProduct(self, product_name):
+        name = str(product_name)
+        if name not in self.products:
+            return
+        rowNum = self.products[name]
+        newProducts = {}
+        for key, value in self.products.items():
+            if key == name:
+                continue
+            if value > rowNum:
+                newProducts[key] = value - 1
+            else:
+                newProducts[key] = value
+        self.products = newProducts
+        self.removeRow(rowNum)
+        self.insertRow(len(self.products))
 
     def onMdData(self, event):
         usefulHeaders = ['InstrumentID', 'LastPrice', 'BidPrice1', 'BidVolume1', 'AskPrice1', 'AskVolume1', 'Volume', 'UpdateTime', 'UpdateMillisec']
@@ -169,6 +206,9 @@ class MdTable(QtGui.QTableWidget):
 # fyabc
 ################################################
 class MdKLineChart(QtGui.QTabWidget):
+    """
+    This subwindow is used to draw K line graph
+    """
     def __init__(self, parent=None, ctp=None):
         super(MdKLineChart, self).__init__(parent)
         
@@ -206,10 +246,11 @@ class MdKLineChart(QtGui.QTabWidget):
             pass
         #((self.currentWidget()).currentWidget()).plotter.draw()
 
-    #end test
 
 class TdBox(QtGui.QWidget):
-    """a box for trade"""
+    """
+    A box for trading operations, such as sending an order
+    """
 
     directionDict = OrderedDict()
     directionDict['0'] = u'买'
@@ -263,7 +304,7 @@ class TdBox(QtGui.QWidget):
         self.EditPriceType = QtGui.QComboBox()
         self.EditPriceType.addItems(self.priceTypeDict.values())
 
-        #Info Layout
+        # Info Layout
         tdInfo = QtGui.QGridLayout()
         tdInfo.setColumnStretch(0,100)
         tdInfo.addWidget(labelID, 0, 0)
@@ -279,7 +320,7 @@ class TdBox(QtGui.QWidget):
         tdInfo.addWidget(self.EditVolume, 4, 1)
         tdInfo.addWidget(self.EditPriceType, 5, 1)
 
-        #button for send order
+        # button for sending order
         self.tdSendOrderButton = QtGui.QPushButton(u'发单', self)
 
         tdBoxLayout = QtGui.QVBoxLayout(self)
@@ -292,7 +333,6 @@ class TdBox(QtGui.QWidget):
         pass
 
     def sendOrder(self):
-        """发单"""
         instrumentId = str(self.EditID.text())
 
         exchangeId = 0
@@ -305,20 +345,30 @@ class TdBox(QtGui.QWidget):
         self.__ctp.sendOrder(instrumentId, exchangeId, price, priceType, volume, direction, offset)
         pass
 
-
-
 ###########################################################
 # end fyabc
 ###########################################################
 
+
 class DemoGUI(QtGui.QMainWindow):
+    """
+    Main window
+    """
 
     def __init__(self, ctp):
         super(DemoGUI, self).__init__()
+
         self.__mainWidget = QtGui.QWidget()
         self.__ctp = ctp
         self.setCentralWidget(self.__mainWidget)
+
         self.bar = self.statusBar()
+
+        self.opBox = OprationBox(self, self.__ctp)
+        self.mdTable = MdTable(self, self.__ctp)
+        self.mdKLineChart = MdKLineChart(self, self.__ctp)
+        self.tdBox = TdBox(self, self.__ctp)
+
         self.initUI()
 
     def initUI(self):
@@ -336,15 +386,11 @@ class DemoGUI(QtGui.QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
 
-        self.opBox = OprationBox(self, self.__ctp)
-        self.mdTable = MdTable(self, self.__ctp)
-        self.mdKLineChart = MdKLineChart(self, self.__ctp)
-        self.tdBox = TdBox(self, self.__ctp)
-        
         # connect the subcribe and unsubcribe button to the Chart Tab
         # fyabc
-        self.opBox.mdSubButton.clicked.connect(lambda : self.mdKLineChart.addInstrument(self.opBox.instrument.text()))
-        self.opBox.mdUnSubButton.clicked.connect(lambda : self.mdKLineChart.removeInstrument(self.opBox.instrument.text()))
+        self.opBox.subSignal.connect(self.mdKLineChart.addInstrument)
+        self.opBox.unsubSignal.connect(self.mdKLineChart.removeInstrument)
+        self.opBox.unsubSignal.connect(self.mdTable.removeProduct)
 
         grid = QtGui.QGridLayout(self.__mainWidget)
 
@@ -369,8 +415,8 @@ def main():
     ctp = Ctp()
     ctp.registerEngine(engine)
 
-    #dataFetcher = DataFetcher()
-    #dataFetcher.registerListeners(engine)
+    dataFetcher = DataFetcher()
+    dataFetcher.registerListeners(engine)
 
     loginDialog = LoginDialog(ctp)
     loginDialog.registerListeners(engine)

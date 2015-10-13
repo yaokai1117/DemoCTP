@@ -13,12 +13,12 @@ class DataFetcher(object):
 
     def __init__(self):
         """ Connect to mysql server, and generate a cursor """
-        self.__con = MySQLdb.connect('localhost', 'yaokai', '950808', 'Test')
+        self.__con = MySQLdb.connect('localhost', 'yaokai', '123456', 'Test')
         self.__cursor = self.__con.cursor()
 
     def __del__(self):
         """ Remember to close the connection to mysql server """
-        #self.__con.close()
+        self.__con.close()
 
     def registerListeners(self, engine):
         """ register listener function to the event driven engine """
@@ -38,7 +38,7 @@ class DataFetcher(object):
 
         data = OrderedDict(event.data)
         productName = data['InstrumentID']
-        tableName = productName + (str(datetime.today()).split(' ')[0]).replace('-', '_')
+        tableName = productName + '_' + (str(datetime.today()).split(' ')[0]).replace('-', '_')
         transDict = {int : 'int', float : 'double', str : 'char(20)'}
 
 
