@@ -1,6 +1,7 @@
 *.pyc
 *.so
 *.con*
+*.json
 mdconnection/*
 !mdconnection/empty
 tdconnection/*

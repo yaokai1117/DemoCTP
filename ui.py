@@ -2,7 +2,7 @@
 
 import sys
 import os
-import shelve
+import json
 from collections import OrderedDict
 from PyQt4 import QtGui, QtCore
 
@@ -71,24 +71,27 @@ class LoginDialog(QtGui.QDialog):
 
     def cache(self):
         """ save the user config"""
-        conf = shelve.open('login.conf')
+        confFile = open('login.json', 'w')
+        conf = dict()
         conf['userid'] = str(self.userid.text())
         conf['passwd'] = str(self.passwd.text())
         conf['mdAddress'] = str(self.mdAddress.text())
         conf['tdAddress'] = str(self.tdAddress.text())
         conf['brokerid'] = str(self.brokerid.text())
-        conf.close()
+        json.dump(conf, confFile)
+        confFile.close()
 
     def readCache(self):
         """ read the userconfig"""
-        if os.path.exists(os.getcwd() + '/login.conf'):
-            conf = shelve.open('login.conf', 'r')
+        if os.path.exists(os.getcwd() + '/login.json'):
+            confFile = open('login.json', 'r')
+            conf = json.load(confFile)
             self.userid.setText(conf['userid'])
             self.passwd.setText(conf['passwd'])
             self.mdAddress.setText(conf['mdAddress'])
             self.tdAddress.setText(conf['tdAddress'])
             self.brokerid.setText(conf['brokerid'])
-            conf.close()
+            confFile.close()
 
     def onMdLogin(self, event):
         if event.error['ErrorID'] == 0:
