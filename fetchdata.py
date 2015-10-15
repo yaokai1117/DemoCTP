@@ -3,7 +3,6 @@
 import MySQLdb
 from eventdriven import *
 from datetime import datetime
-from collections import OrderedDict
 
 
 class MySqlHandler(object):
@@ -12,13 +11,17 @@ class MySqlHandler(object):
     Some usually used operations are encapsulated in this class, such as insert, create table.
     """
 
+    __metaclass__ = Singleton
+
     typeTransDict = {int: 'bigint', float: 'double', str: 'char(20)', unicode: 'char(60)'}
 
     def __init__(self, address, username, password, database):
         self.__con = MySQLdb.connect(address, username, password, database)
         self.__cursor = self.__con.cursor()
+        self.__count = 0
 
     def __del__(self):
+        self.__con.commit()
         self.__con.close()
 
     def createTable(self, tableName, header, types):
@@ -55,20 +58,26 @@ class MySqlHandler(object):
 
         # check field
         if fieldList is not None:
-            currentFieldList = list(set(fieldList).intersection(set(currentFieldList)))
+            currentFieldList = fieldList
 
-        self.__cursor.execute("INSERT INTO "
-                              + tableName
-                              + " (" + ", ".join(currentFieldList) + ") "
-                              + "VALUE"
-                              + " (" + ", ".join(toSqlStr(data[field]) for field in currentFieldList) + ");")
-        self.__con.commit()
+        self.__cursor.execute("INSERT INTO " +
+                              tableName +
+                              " (" + ", ".join(currentFieldList) + ") " +
+                              "VALUE" +
+                              " (" + ", ".join(toSqlStr(data[field]) for field in currentFieldList) + ");")
+
+        self.__count += 1
+        if self.__count == 50:
+            self.__con.commit()
+            self.__count = 0
 
 
 class DataFetcher(object):
     """
     DataFetcher is used to fetch market data, and save them to mysql database
     """
+
+    __metaclass__ = Singleton
 
     def __init__(self):
         """ Init a MySqlHandler"""

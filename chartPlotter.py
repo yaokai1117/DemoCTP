@@ -17,9 +17,7 @@ from matplotlib.ticker import *
 import time,random
 
 
-
 class ChartPlotter(FigureCanvas):
-
 
     def __init__(self, timescale=1.0):
         self.fig = Figure()

@@ -11,6 +11,8 @@ class Ctp(object):
     include tdapi and mdapi
     """
 
+    __metaclass__ = Singleton
+
     def __init__(self):
         self.__md = TestMdApi()
         self.__td = TestTdApi()
@@ -49,3 +51,10 @@ class Ctp(object):
     ##########################
     # end fyabc
     ##########################
+
+if __name__ == '__main__':
+
+    # test singleton
+    a = Ctp()
+    b = Ctp()
+    print(a is b)

@@ -3,6 +3,7 @@
 from collections import defaultdict
 from Queue import Queue, Empty
 from threading import Thread
+import functools
 
 # Definition of the type of events
 EVENT_MD_LOGIN = 'md_login'
@@ -12,6 +13,19 @@ EVENT_MD_DATA = 'md_data'
 EVENT_TD_LOGIN = 'td_login'
 EVENT_TD_SETTLEINFO = 'td_settleinfo'
 EVENT_TD_SETTLECONFIRM = 'td_settleconfirm'
+
+
+class Singleton(type):
+    """ This metaclass is used to implement singleton pattern """
+    def __init__(cls, name, bases, dict):
+        super(Singleton, cls).__init__(name, bases, dict)
+        cls._instance = None
+
+    def __call__(cls, *args, **kw):
+        if cls._instance is None:
+            cls._instance = super(Singleton, cls).__call__(*args, **kw)
+        return cls._instance
+
 
 class Event(object):
     """
@@ -25,10 +39,13 @@ class Event(object):
         self.error = error
         self.state = state
 
+
 class EventDispatcher(object):
     """
     EventDispatcher handle different kind of event, listener functions can be registered on it
     """
+
+    __metaclass__ = Singleton
 
     def __init__(self):
         self.__events = Queue()
@@ -70,6 +87,14 @@ class EventDispatcher(object):
 
     def isActive(self):
         return self.__active
+
+
+if __name__ == '__main__':
+    # test singleton
+    a = EventDispatcher()
+    b = EventDispatcher()
+
+    print(a is b)
 
 
 

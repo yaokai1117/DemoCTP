@@ -2,7 +2,9 @@
 
 import requests
 import json
+import time
 from fetchdata import MySqlHandler
+from eventdriven import Singleton
 
 
 class Downloader(object):
@@ -10,6 +12,8 @@ class Downloader(object):
     This class is used to download data from datayes,
     downloader needs to be initialed with an address and a token
     """
+
+    __metaclass__ = Singleton
 
     def __init__(self, config=None, address=None, token=None):
         if config is not None:
@@ -36,7 +40,6 @@ class Downloader(object):
         :return: a response from datayes
         """
         realUrl = 'https://' + self.__address+ url
-        print(realUrl)
 
         req = requests.Request('GET', url=realUrl,
                                headers=self.__headers,
@@ -52,17 +55,27 @@ class Downloader(object):
 
 if __name__ == '__main__':
     downloader = Downloader(config='datayesconf.json')
+
+    # test singleton
+    b = Downloader(config='datayesconf.json')
+    print(downloader is b)
+
+    # CF601 from 2015.1 to today, about 170 records
     testData = downloader.getData(url='/api/market/getMktFutdVol.json',
                                   params={'ticker': 'CF601',
                                           'beginDate': '',
                                           'endDate': '',
                                           'field': ''})
 
-    #print(testData.text.encode('utf-8'))
+    # ZN from 2007, about 13M data
+    #testData = downloader.getData(url='/api/market/getMktMFutd.json',
+    #                              params={'contractObject': 'ZN',
+    #                                      'field': ''})
+    #print(testData.text)
 
     handler = MySqlHandler('localhost', 'yaokai', '123456', 'Test')
 
-    tableName = 'YES_CF601'
+    tableName = 'DATAYES_CF601'
 
     originData = json.loads(testData.text.encode('utf-8'))
     example = originData['data'][0]
@@ -74,8 +87,15 @@ if __name__ == '__main__':
                         fieldList,
                         [type(example[field]) for field in fieldList])
 
+    begin = time.time()
+    print(begin)
+
     for data in originData['data']:
-        data = {field: data[field] for field in fieldList}
-        handler.insert(tableName, data)
+        handler.insert(tableName, data, fieldList)
+
+    end = time.time()
+    print(end)
+
+    print(end - begin)
 
     testData.close()

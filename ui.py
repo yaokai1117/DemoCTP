@@ -220,8 +220,7 @@ class MdKLineChart(QtGui.QTabWidget):
         self.setGeometry(10, 275, 970, 440)
         
         self.tabs = {}                  # a dict of tabs for Instruments
-        
-        #self.addInstrument('IF1512')
+
 
     def registerListeners(self, engine):
         engine.registerListener(EVENT_MD_DATA, self.onMdData)
@@ -247,7 +246,6 @@ class MdKLineChart(QtGui.QTabWidget):
         if event.data['InstrumentID'] in self.tabs.keys():
             (self.tabs[event.data['InstrumentID']]).updateData(event.data)
             pass
-        #((self.currentWidget()).currentWidget()).plotter.draw()
 
 
 class TdBox(QtGui.QWidget):
