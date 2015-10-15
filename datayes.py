@@ -3,7 +3,6 @@
 import requests
 import json
 from fetchdata import MySqlHandler
-from collections import OrderedDict
 
 
 class Downloader(object):
@@ -55,27 +54,28 @@ if __name__ == '__main__':
     downloader = Downloader(config='datayesconf.json')
     testData = downloader.getData(url='/api/market/getMktFutdVol.json',
                                   params={'ticker': 'CF601',
-                                          'beginDate': '20150303',
-                                          'endDate': '20150304',
+                                          'beginDate': '',
+                                          'endDate': '',
                                           'field': ''})
 
-    print(testData.text.encode('utf-8'))
+    #print(testData.text.encode('utf-8'))
 
-    #handler = MySqlHandler('localhost', 'yaokai', '123456', 'Test')
+    handler = MySqlHandler('localhost', 'yaokai', '123456', 'Test')
 
-    #tableName = 'YES_CF601'
+    tableName = 'YES_CF601'
 
-    #originData = json.loads(testData.text.encode('utf-8'))
-    #print(originData['data'])
-    #print(str(originData['data'][0].keys()[0]))
-    #example = originData['data'][0]
-    #ordered = OrderedDict(example)
+    originData = json.loads(testData.text.encode('utf-8'))
+    example = originData['data'][0]
+    example.pop(u'secShortName')
 
-    #handler.createTable(tableName,
-    #                    ordered.keys(),
-    #                    [type(value) for value in ordered.values()])
+    fieldList = example.keys()
 
-    #for data in originData['data']:
-    #    handler.insert(tableName, data)
+    handler.createTable(tableName,
+                        fieldList,
+                        [type(example[field]) for field in fieldList])
+
+    for data in originData['data']:
+        data = {field: data[field] for field in fieldList}
+        handler.insert(tableName, data)
 
     testData.close()

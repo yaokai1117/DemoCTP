@@ -12,7 +12,7 @@ class MySqlHandler(object):
     Some usually used operations are encapsulated in this class, such as insert, create table.
     """
 
-    typeTransDict = {int: 'int', float: 'double', str: 'char(20)', unicode: 'char(60)'}
+    typeTransDict = {int: 'bigint', float: 'double', str: 'char(20)', unicode: 'char(60)'}
 
     def __init__(self, address, username, password, database):
         self.__con = MySQLdb.connect(address, username, password, database)
@@ -35,10 +35,11 @@ class MySqlHandler(object):
                               + ");")
         self.__con.commit()
 
-    def insert(self, tableName, originData):
+    def insert(self, tableName, data, fieldList=None):
         """
         Insert some value to a existing table.
-        :param data: a dict
+        :param data: a dict to be insert into mysql database.
+        :param fieldList: a list of str, if fieldList isn't none, a record will be insert only if its field is in fieldList
         """
 
         # transfer str to 'str'
@@ -50,13 +51,17 @@ class MySqlHandler(object):
             else:
                 return str(obj)
 
-        data = OrderedDict(originData)
+        currentFieldList= data.keys()
+
+        # check field
+        if fieldList is not None:
+            currentFieldList = list(set(fieldList).intersection(set(currentFieldList)))
 
         self.__cursor.execute("INSERT INTO "
                               + tableName
-                              + " (" + ", ".join(data.keys()) + ") "
+                              + " (" + ", ".join(currentFieldList) + ") "
                               + "VALUE"
-                              + " (" + ", ".join(toSqlStr(value) for value in data.values()) + ");")
+                              + " (" + ", ".join(toSqlStr(data[field]) for field in currentFieldList) + ");")
         self.__con.commit()
 
 
@@ -82,12 +87,13 @@ class DataFetcher(object):
         productName = event.data['InstrumentID']
         tableName = productName + '_' + (str(datetime.today()).split(' ')[0]).replace('-', '_')
 
-        ordered = OrderedDict(event.data)
+        data = event.data
+        fieldList = data.keys()
 
         self.__handler.createTable(tableName,
-                                   ordered.keys(),
-                                   [type(value) for value in ordered.values()])
-        self.__handler.insert(tableName, event.data)
+                                   fieldList,
+                                   [type(data[field]) for field in fieldList])
+        self.__handler.insert(tableName, data)
 
 
 if __name__ == '__main__':
