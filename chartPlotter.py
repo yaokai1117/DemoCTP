@@ -14,10 +14,16 @@ from matplotlib.patches import Rectangle
 import matplotlib.dates
 from matplotlib.dates import SecondLocator,MinuteLocator,HourLocator,DateFormatter
 from matplotlib.ticker import *
-import time,random
 
 
 class ChartPlotter(FigureCanvas):
+    u"""
+    用于画一个特定品种的特定时间的K线图和成交量图，是对应ChartBar的实际绘图部分。
+
+    self.priceChart： K线图
+    self.volumeChart：成交量图
+    self.trendlinesData：趋势线集合
+    """
 
     def __init__(self, timescale=1.0):
         self.fig = Figure()
@@ -39,11 +45,11 @@ class ChartPlotter(FigureCanvas):
         self.chartInit(self.priceChart,timescale)
         self.chartInit(self.volumeChart,timescale)
 
-        self.trendlinesData = {}                    #存储所有趋势线的字典，键=趋势线名，值=趋势线对象
+        self.trendlinesData = {}
         self.lineColors = ['pink','red','green','purple','white','blue','yellow']
     
-    def chartInit(self,chart,timescale=1.0):     
-        #self.priceChart.set_ylabel('price', fontsize='small')
+    def chartInit(self,chart,timescale=1.0):
+        u"""根据timescale设置K线图和成交量图的label，xLocator等参数"""
         chart.grid(color='w')
         
         for tick in chart.yaxis.get_major_ticks():
@@ -51,8 +57,7 @@ class ChartPlotter(FigureCanvas):
             tick.label2On = True
             tick.label1.set_fontsize(9)
             tick.label2.set_fontsize(9)
-            
-        # set_xlocator
+
         if timescale <= 10:
             chart.xaxis.set_major_locator(SecondLocator([0,30]))    
             chart.xaxis.set_major_formatter(DateFormatter('%H:%M:%S'))
@@ -66,12 +71,14 @@ class ChartPlotter(FigureCanvas):
             chart.xaxis.set_major_locator(HourLocator([0,12]))    
             chart.xaxis.set_major_formatter(DateFormatter('%H:%M'))
 
-    def adjustYLim(self,minPrice,maxPrice,maxVolume):       #根据最值，调整y轴范围
+    def adjustYLim(self,minPrice,maxPrice,maxVolume):
+        u"""重新调整图的y轴上下界"""
         self.priceChart.set_ylim(minPrice,maxPrice)
         self.volumeChart.set_ylim(0,maxVolume)
     
     def plotKLine(self, data, timescale=1.0,
                   width=0.9, colorup='r', colorflat = 'w', colordown='g', alpha=1.0):
+        u"""根据数据画一个新的K线"""
         self.priceChart.set_xlim(data[0]-50*timescale/86400,data[0]+8*timescale/86400)
         
         t, open, close, high, low = data[:5]
@@ -95,16 +102,14 @@ class ChartPlotter(FigureCanvas):
             
         rect.set_alpha(alpha)
         
-        #self.priceChart.axhline(y=close,xmin=0.2,xmax=0.8)
-        
         self.priceChart.add_line(shadowline)
         self.priceChart.add_patch(rect)
 
-        #返回画的图形，方便后面adjust
         return shadowline, rect
 
     def adjustKLine(self, data, shadowLine, rect,
                     timescale=1.0, colorup='r', colorflat='w',colordown='g'):
+        u"""调整一根K线shadowLine和rect的数据"""
         open, close, high, low = data[1:5]
             
         if close > open:
@@ -124,6 +129,7 @@ class ChartPlotter(FigureCanvas):
         
     def plotVolume(self, data, timescale=1.0,
                    width=0.9, colorup='r', colorflat='w',colordown='g', alpha=1.0):
+        u"""根据数据画一个新的成交量rect"""
         self.volumeChart.set_xlim(data[0]-50*timescale/86400,data[0]+8*timescale/86400)
         
         t, open, close= data[:3]
@@ -137,14 +143,16 @@ class ChartPlotter(FigureCanvas):
             
         rect = Rectangle(xy = (t-width*timescale/172800, 0),
             width = width*timescale/86400,
-            height = volume, facecolor=color, edgecolor=color,)  
+            height = volume, facecolor=color, edgecolor=color)
+
+        rect.set_alpha(alpha)
             
         self.volumeChart.add_patch(rect)
 
-        #返回画的图形，方便后面adjust
         return rect
     
     def adjustVolume(self, data, rect, timescale=1.0, colorup='r', colorflat='w',colordown='g'):
+        u"""调整成交量图rect的数据"""
         open, close = data[1:3]
         volume = data[5]
         
@@ -162,10 +170,8 @@ class ChartPlotter(FigureCanvas):
         pass
 
     def addTrendline(self, trendline, isActive):
-        """加入，隐藏或重新显示一条趋势线
-        trendline 为趋势线名
-        isActive 表示是否显示该趋势线
-        """
+        u"""加入，隐藏或重新显示一条趋势线trendline
+        isActive 是否显示该趋势线"""
         if isActive:
             if trendline not in self.trendlinesData:                #创建新线
                 tempLine = Line2D(xdata=[],ydata=[])
@@ -201,6 +207,16 @@ class ChartPlotter(FigureCanvas):
 
 
 class ChartBar(QtGui.QWidget):
+    u"""
+    界面中的一个timescale对应的一个标签页，存储画图需要的数据
+
+    self.plotter：专门画图的对象
+    self.trendlineBox：更改趋势线的按钮
+    self.currShadowLine，self.currRect，self.currVolumeBar：保存当前图中正在操作的K线和成交量线等
+    self.data：存储数据，每个元素格式为（time，open，close，high，low，volume）
+    self.curTime：数据中最新的时间
+    self.trendlineNames：趋势线名称列表
+    """
     def __init__(self,InstrumentID, timescale=1.0, parent=None, initData=None):
         super(ChartBar, self).__init__(parent)
         
@@ -219,31 +235,34 @@ class ChartBar(QtGui.QWidget):
         self.layout.addLayout(self.subLayout)
         self.layout.addWidget(self.plotter)
         self.setLayout(self.layout)
-        self.data = []                    #time,open,close,high,low,volume
-        self.currtime = 0.0
+        self.data = []
+        self.curTime = 0.0
 
-        self.currShadowLine = None                      #当前的影线
-        self.currRect = None                            #当前的实体线
-        self.currVolumeBar = None                       #当前的成交量线
-        self.trendlineNames = ['MA3','MA5','MA10','MA20','MA25']    #趋势线名称列表
+        self.currShadowLine = None
+        self.currRect = None
+        self.currVolumeBar = None
 
-        for i,trendline in enumerate(self.trendlineNames):           #把趋势线添加到图表中
+        self.trendlineNames = ['MA3','MA5','MA10','MA20','MA25']
+
+        for i,trendline in enumerate(self.trendlineNames):
             self.plotter.addTrendline(trendline,True)
             self.plotter.addTrendline(trendline,False)
             tmp = self.trendlineMenu.addAction(trendline)
             tmp.setCheckable(True)
-            #tmp.setChecked(True)
             tmp.triggered.connect(self.triggerMenu)
 
-    def triggerMenu(self):          #按下菜单按键
+    def triggerMenu(self):
+        u"""按下趋势线菜单，修改趋势线显示状态"""
         for action in self.trendlineMenu.actions():
-            self.plotter.addTrendline(str(action.text()),action.isChecked())    #改变趋势线状态
+            self.plotter.addTrendline(str(action.text()),action.isChecked())
         self.plotter.draw()
     
     def updateData(self,data):
-        if data[0] - self.currtime > self.__timescale/86400:
-            self.currtime = self.__timescale/86400*int(data[0]*86400/self.__timescale)
-            self.data.append([self.currtime,data[1],data[1],data[1],data[1],data[2]])
+        u"""data为从ChartWidget传来的tick数据，
+        根据timescale更新该ChartBar存储的数据，并且画一个新的K线或者调整当前K线"""
+        if data[0] - self.curTime > self.__timescale/86400:
+            self.curTime = self.__timescale/86400*int(data[0]*86400/self.__timescale)
+            self.data.append([self.curTime,data[1],data[1],data[1],data[1],data[2]])
             
             self.currShadowLine,self.currRect = self.plotter.plotKLine(self.data[-1],timescale=self.__timescale)
             self.currVolumeBar = self.plotter.plotVolume(self.data[-1],timescale=self.__timescale)
@@ -264,13 +283,12 @@ class ChartBar(QtGui.QWidget):
         self.plotter.adjustYLim(0.999*min([i[4] for i in self.data[max(-len(self.data),-50):]]),
                                 1.001*max([i[3] for i in self.data[max(-len(self.data),-50):]]),
                                 1*max([i[5] for i in self.data[max(-len(self.data),-50):]]))
-        #self.plotter.priceChart.autoscale_view()    #最后统一调整刻度
-        #self.plotter.volumeChart.autoscale_view()
-        self.plotter.draw()                         #最后统一画图
+
+        self.plotter.draw()
 
     def calTrendlineAndPlot(self,name):
         """计算各趋势线的值并画图"""
-        avr = int(name[2:])                         #'MAxxx' 均线
+        avr = int(name[2:])                         #目前只有 'MAxxx' 均线
         if len(self.data) >= avr:
             tempPrice = 0.0
             for i in range(-avr,0):
@@ -289,10 +307,14 @@ class ChartBar(QtGui.QWidget):
             self.plotter.adjustTrendline(tempPrice,name)
 
     def initPlot(self):
+        u"""登录后，获取历史数据并画图，待实现"""
         pass
-    
-    
+
+
 class ChartWidget(QtGui.QTabWidget):
+    u"""
+    包含一个品种的所有timescale的K线图，负责从engine接收tick数据，存储并分发给每个ChartBar
+    """
     def __init__(self, InstrumentID, parent=None, initdata=None):
         super(ChartWidget, self).__init__(parent)
         
@@ -304,23 +326,6 @@ class ChartWidget(QtGui.QTabWidget):
         
         self.tab_30s = ChartBar(self.__InstrumentID,timescale=30.0)
         self.addTab(self.tab_30s,'30s')
-        
-        #test
-        self.tdata = {}
-        self.tdata['TradingDay'] = '20111111'
-        self.tdata['LastPrice'] = 9900.0
-
-        self.tim = QtCore.QTimer()
-        self.tim.timeout.connect(self.test)
-        self.tim.start(500)
-
-    def test(self):             #定时生成测试数据
-        self.tdata['UpdateTime'] = time.ctime()[11:-5]
-        self.tdata['UpdateMillisec'] = int((time.time() % 1)*1000)
-        self.tdata['LastPrice'] = random.uniform(self.tdata['LastPrice']-20,self.tdata['LastPrice']+20)
-        self.tdata['BidVolume1'] = random.randint(1,15)
-        self.tdata['AskVolume1'] = random.randint(1,15)
-        #self.updateData(self.tdata)
     
     def updateData(self,data=None):
         timeData = (data['TradingDay'] + ' ' + data['UpdateTime'] + 
@@ -333,16 +338,3 @@ class ChartWidget(QtGui.QTabWidget):
         self.data.append([time0,priceData,volumeData])
         self.tab_5s.updateData(self.data[-1])
         self.tab_30s.updateData(self.data[-1])
-        
-        #print 'the data is updated!!!!!!!!!!!'
-        #print timeData,priceData,volumeData
-        #for key in data.keys():
-        #    print key,data[key],type(data[key])
-        
-        pass
-       
-def test():
-    pass
-
-if __name__ == '__main__':
-    test()

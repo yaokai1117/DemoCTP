@@ -1,0 +1,8 @@
+依赖关系说明
+
+vn.py是github上的一个有关量化交易的开源项目，这里使用了它对CTP的从C++到python的一层封装，需在本地机器上自行编译动态链接库:
+	vnctpmd.so
+	vnctptd.so
+install.sh会自动进行编译并把.so文件移动到对应位置，但需要本地机器安装有boost的Thread,Python,Datetime三个库
+
+

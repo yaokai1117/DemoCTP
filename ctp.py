@@ -40,17 +40,13 @@ class Ctp(object):
     def qryInvesor(self):
         self.__td.qryInvestor()
 
-    ##########################
     # fyabc
-    ##########################
     def sendOrder(self, instrumentId, exchangeId, price, priceType, volume, direction, offset):
         #发单
         self.__td.sendOrder(instrumentId, exchangeId, price, priceType, volume, direction, offset)
         pass
 
-    ##########################
     # end fyabc
-    ##########################
 
 if __name__ == '__main__':
 

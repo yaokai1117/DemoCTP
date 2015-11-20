@@ -188,35 +188,4 @@ class TestTdApi(TdApi):
 
 
 
-def main():
-
-    reqid = 0
-
-    engine = EventDispatcher()
-    engine.start()
-    app = QtGui.QApplication(sys.argv)
-
-    td = TestTdApi()
-    td.registerEngine(engine)
-    td.login('020956', '18936803910', 'tcp://180.168.146.187:10000', '9999')
-
-    td.subscribePrivateTopic(1)
-    td.subscribePublicTopic(1)
-    
-    #td.createFtdcTraderApi('')
-
-    #td.registerFront("tcp://180.168.146.187:10000")
-
-    #td.init()
-
-    #td.qrySettlementInfo()
-
-    #td.qryInvestor()
-    #td.qryAccount()
-
-    exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
 

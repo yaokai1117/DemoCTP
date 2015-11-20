@@ -86,23 +86,4 @@ class TestMdApi(MdApi):
         self.__engine = engine
 
 
-def main():
-    """ debug """
-    app = QtGui.QApplication(sys.argv)
-    engine = EventDispatcher()
-    engine.start()
-    engine.registerListener(EVENT_MD_LOGIN, onMdLogin)
-    engine.registerListener(EVNET_MD_RSPERROR, onMdError)
-    engine.registerListener(EVENT_MD_DATA, onMdData)
-
-    md = TestMdApi()
-    md.registerEngine(engine)
-    md.login('020956', '18936803910', 'tcp://180.168.146.187:10010', '9999')
-    md.subscribe('CF601')
-    sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()
-
-
 
