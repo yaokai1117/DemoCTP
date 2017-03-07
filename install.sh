@@ -1,4 +1,5 @@
 echo "Installing......"
+export LD_LIBRARY_PATH=$(pwd)/dependency/vnctp/ctpapi:#LD_LIBRARY_PATH
 cd dependency/vnctp/
 cd vnctpmd/
 make

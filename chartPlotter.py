@@ -7,7 +7,7 @@ Created on Sat Sep 05 22:27:57 2015
 
 from PyQt4 import QtGui,QtCore
 from matplotlib.backends.backend_qt4agg import  FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
